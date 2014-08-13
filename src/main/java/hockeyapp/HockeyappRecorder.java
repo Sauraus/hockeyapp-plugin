@@ -321,7 +321,7 @@ public class HockeyappRecorder extends Recorder {
             FilePath[] remoteFiles = remoteWorkspace.list(vars.expand(filePath));
 
             if (remoteFiles == null && remoteFiles.length == 0) {
-                listener.getLogger().println("No files to upload found in: ", filePath);
+                listener.getLogger().println("No files to upload found in: " + filePath);
                 return this.failGracefully;
             }
 
