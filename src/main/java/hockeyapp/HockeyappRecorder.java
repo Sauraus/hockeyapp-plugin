@@ -89,6 +89,8 @@ public class HockeyappRecorder extends Recorder {
     @Exported
     public String dsymPath;
     @Exported
+    public String libsPath;
+    @Exported
     public String tags;
     @Exported
     public boolean downloadAllowed;
@@ -121,7 +123,7 @@ public class HockeyappRecorder extends Recorder {
 
     @DataBoundConstructor
     public HockeyappRecorder(String apiToken, boolean notifyTeam,
-                             String filePath, String dsymPath, String tags,
+                             String filePath, String dsymPath, String libsPath, String tags,
                              boolean downloadAllowed,
                              OldVersionHolder oldVersionHolder, boolean debugMode,
                              RadioButtonSupport uploadMethod, RadioButtonSupport releaseNotesMethod,
@@ -133,6 +135,7 @@ public class HockeyappRecorder extends Recorder {
 
         this.filePath = Util.fixEmptyAndTrim(filePath);
         this.dsymPath = Util.fixEmptyAndTrim(dsymPath);
+        this.libsPath = Util.fixEmptyAndTrim(libsPath);
         this.tags = Util.fixEmptyAndTrim(tags);
         this.downloadAllowed = downloadAllowed;
 
@@ -167,6 +170,7 @@ public class HockeyappRecorder extends Recorder {
         this.buildNotes = Util.fixEmptyAndTrim(buildNotes);
         this.filePath = Util.fixEmptyAndTrim(filePath);
         this.dsymPath = Util.fixEmptyAndTrim(dsymPath);
+        this.libsPath = null;
         this.tags = Util.fixEmptyAndTrim(tags);
         this.downloadAllowed = downloadAllowed;
         this.useChangelog = useChangelog;
@@ -357,9 +361,16 @@ public class HockeyappRecorder extends Recorder {
                     createReleaseNotes(build, entity, listener, tempDir, vars);
 
                 }
-
-
                 entity.addPart("ipa", fileBody);
+
+                if (libsPath != null) {
+                    FilePath remoteLibsFiles[] = remoteWorkspace.list(vars.expand(libsPath));
+                    // Take the first one that matches the pattern
+                    File libsFile = getLocalFileFromFilePath(remoteLibsFiles[0], tempDir);
+                    listener.getLogger().println(libsFile);
+                    FileBody libsFileBody = new FileBody(libsFile);
+                    entity.addPart("libs", libsFileBody);
+                }
 
                 if (dsymPath != null) {
                     FilePath remoteDsymFiles[] = remoteWorkspace.list(vars.expand(dsymPath));
@@ -465,7 +476,7 @@ public class HockeyappRecorder extends Recorder {
         if (uploadMethod instanceof VersionCreation) {
             VersionCreation versionCreation = (VersionCreation) uploadMethod;
             if (versionCreation.getAppId() != null) {
-                path = "/api/2/apps/" + vars.expand(versionCreation.getAppId()) + "/app_versions";
+                path = "/api/2/apps/" + vars.expand(versionCreation.getAppId()) + "/app_versions/upload";
             } else {
                 listener.getLogger().println("No AppId specified!");
                 path = null;
@@ -831,7 +842,6 @@ public class HockeyappRecorder extends Recorder {
         }
 
     }
-
     private String readReleaseNotesFile(File file) throws IOException {
         FileInputStream inputStream = new FileInputStream(file);
         try {
